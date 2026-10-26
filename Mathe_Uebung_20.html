@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rechnen bis 20</title>
+<style>
+:root{--bg:#fff7d6;--card:#fff;--ink:#3b2f63;--accent:#ff7a59;--ok:#8fe3a0;--okb:#2fa84f;--bad:#ffb3b3;--badb:#e04848}
+@media (prefers-color-scheme:dark){:root{--bg:#2a2540;--card:#3a3458;--ink:#fff6d9;--ok:#2f7d46;--okb:#7ee29a;--bad:#8a3a3a;--badb:#ff8f8f}}
+*{box-sizing:border-box}
+body{margin:0;padding:16px;background:var(--bg);color:var(--ink);font-family:"Comic Sans MS","Comic Neue","Chalkboard SE","Marker Felt",cursive,sans-serif;text-align:center}
+h1{margin:8px 0 4px;font-size:2rem}
+.bar{display:flex;gap:12px;justify-content:center;align-items:center;flex-wrap:wrap;margin:10px 0 16px}
+.score{font-size:1.3rem;background:var(--card);padding:8px 18px;border-radius:30px;border:3px dashed var(--accent)}
+button{font:inherit;font-size:1.2rem;background:var(--accent);color:#fff;border:0;border-radius:30px;padding:10px 24px;cursor:pointer;box-shadow:0 4px 0 #c4553a}
+button:active{transform:translateY(3px);box-shadow:0 1px 0 #c4553a}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;max-width:1000px;margin:0 auto}
+.task{background:var(--card);border-radius:18px;padding:12px 8px;font-size:1.5rem;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 3px 8px rgba(0,0,0,.12)}
+.nr{font-size:.9rem;opacity:.6;min-width:1.6em}
+input{font:inherit;font-size:1.5rem;width:3.2em;text-align:center;border:3px solid #b9a8f0;border-radius:12px;padding:4px;background:#fff;color:#222}
+input.ok{background:var(--ok);border-color:var(--okb);color:#0b3a1a}
+input.bad{background:var(--bad);border-color:var(--badb);color:#5a1212}
+#win{min-height:2.2em;font-size:1.6rem;margin-top:16px}
+</style>
+</head>
+<body>
+<h1>🌈 Rechnen bis 20 🚀</h1>
+<div class="bar">
+  <div class="score">⭐ <span id="s">0</span> / 30</div>
+  <button id="neu">🔄 Neue Aufgaben</button>
+</div>
+<div class="grid" id="grid"></div>
+<div id="win"></div>
+
+<script>
+const R=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=R(0,i);[a[i],a[j]]=[a[j],a[i]]}return a};
+
+// Zehnerübergang
+function plusUe(){const a=R(2,9),b=R(10-a+1,9);return{a,b,op:'+',r:a+b}}      // z.B. 7+5
+function minusUe(){const a=R(12,18),b=R(a-10+1,9);return{a,b,op:'−',r:a-b}}   // z.B. 14-6
+// ohne Zehnerübergang
+function plusLeicht(){
+  if(Math.random()<.5){const a=R(1,9),b=R(1,10-a);return{a,b,op:'+',r:a+b}}
+  const a=R(11,19),b=R(1,Math.min(9,20-a));return{a,b,op:'+',r:a+b}}
+function minusLeicht(){
+  if(Math.random()<.4){const a=R(2,10),b=R(1,a-1);return{a,b,op:'−',r:a-b}}
+  const a=R(11,20),u=a%10,b=u===0?R(1,10):R(1,u);return{a,b,op:'−',r:a-b}}
+
+function make(){
+  const seen=new Set(),out=[];
+  const add=(fn,n)=>{let t=0;while(n>0&&t++<500){const x=fn(),k=x.a+x.op+x.b;if(!seen.has(k)){seen.add(k);out.push(x);n--}}};
+  const pU=R(2,3);
+  add(plusUe,pU);add(minusUe,5-pU);
+  add(plusLeicht,15-pU);add(minusLeicht,15-(5-pU));
+  return shuffle(out);
+}
+
+const grid=document.getElementById('grid'),sEl=document.getElementById('s'),win=document.getElementById('win');
+function check(inp,r){
+  const v=inp.value.trim(),was=inp.classList.contains('ok');
+  inp.classList.remove('ok','bad');
+  if(v!==''){
+    if(Number(v)===r)inp.classList.add('ok');
+    else if(v.length>=String(r).length)inp.classList.add('bad');
+  }
+  const n=grid.querySelectorAll('input.ok').length;
+  sEl.textContent=n;
+  win.textContent=n===30?'🎉🏆 Super! Du hast alles geschafft! 🏆🎉':'';
+}
+function render(){
+  grid.innerHTML='';win.textContent='';sEl.textContent=0;
+  make().forEach((t,i)=>{
+    const d=document.createElement('div');d.className='task';
+    d.innerHTML=`<span class="nr">${i+1}.</span><span>${t.a} ${t.op} ${t.b} =</span>`;
+    const inp=document.createElement('input');
+    inp.type='number';inp.inputMode='numeric';inp.min=0;inp.max=99;inp.autocomplete='off';
+    inp.addEventListener('input',()=>check(inp,t.r));
+    inp.addEventListener('blur',()=>{if(inp.value!==''&&!inp.classList.contains('ok'))inp.classList.add('bad')});
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter'){const n=grid.querySelectorAll('input')[i+1];if(n)n.focus()}});
+    d.appendChild(inp);grid.appendChild(d);
+  });
+}
+document.getElementById('neu').onclick=render;
+render();
+</script>
+</body>
+</html>
